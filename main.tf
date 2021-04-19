@@ -8,6 +8,9 @@ resource "aws_instance" "infraworld" {
   instance_type          = "t2.micro"
   vpc_security_group_ids = [aws_security_group.secgroup-infraworld.id]
 
+  // Adding the meta-argument depends_on to ensure I am able to SSH to the instance with the recently created aws_key_pair
+  depends_on = [aws_key_pair.mt-infra]
+
   user_data = <<-EOF
               #!/bin/bash
               echo "Hello, InfraWorld" > index.html
@@ -35,6 +38,23 @@ resource "aws_security_group" "secgroup-infraworld" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  ingress {
+    from_port        = var.http_port
+    to_port          = var.http_port
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  ingress {
+    from_port        = var.https_port
+    to_port          = var.https_port
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
 }
 
 resource "aws_key_pair" "mt-infra" {
@@ -52,6 +72,18 @@ variable "ssh_port" {
   description = "The port the server will use for SSH connections"
   type        = number
   default     = 22
+}
+
+variable "http_port" {
+  description = "The port the server will use for HTTP connections"
+  type        = number
+  default     = 80
+}
+
+variable "https_port" {
+  description = "The port the server will use for HTTPS connections"
+  type        = number
+  default     = 443
 }
 
 output "public_ip" {
